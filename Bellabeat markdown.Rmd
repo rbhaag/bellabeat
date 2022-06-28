@@ -1,0 +1,229 @@
+---
+title: "Bellabeat Analysis"
+output:
+  pdf_document: default
+  html_document: default
+date: '2022-06-27'
+---
+
+## Bellabeat 
+
+# Company Background
+
+Bellabeat is a small manufacturer of smart health devices marketed for women. Cofounder and Chief Creative Officer, Urška Sršen, would like an analysis of Bellabeat device data.  Urška Sršen, along with cofounder Sando Mur and the Bellabeat marketing analytics team, hope to gain insight into an effective marketing strategy as a result of this analysis. 
+
+# The Task at Hand
+
+I hope to identify trends for both Bellabeat and other similar products and help develop marketing based on these trends.
+
+# The Data
+
+The data that I used is a CSV formatted Kaggle data set titled: FitBit Fitness Tracker Data (CC0: Public Domain, dataset made available through Mobius): It can be located at this website <https://www.kaggle.com/datasets/arashnic/fitbit>. The data set contains personal fitness tracker from thirty FitBit users that consented to the submission of their data.  Their data includes minute-level output for physical activity, heart rate, and sleep monitoring. It also includes information about daily activity, steps, and heart rate.  There are some limitations in this data due to only thirty users submitting their data.
+
+# Processing and Analyzing 
+
+I first started by installing the cleaning and analysis packages I needed and loaded their libraries.
+
+```{r install packages}
+install.packages("tidyverse")
+install.packages("lubridate")
+install.packages("here")
+install.packages("skimr")
+install.packages("janitor")
+```
+
+```{r load libraries}
+library("tidyverse")
+library("lubridate")
+library("here")
+library("skimr")
+library("janitor")
+```
+
+Then, I loaded the CSV files.
+
+```{r load CSV files}
+daily_activity <- read.csv("dailyActivity_merged.csv")
+daily_calories <- read.csv("dailyCalories_merged.csv")
+daily_intensities <- read.csv("dailyIntensities_merged.csv")
+daily_steps <- read.csv("dailySteps_merged.csv")
+sleep_day <- read.csv("sleepDay_merged.csv")
+weight_log <- read.csv("weightLogInfo_merged.csv")
+```
+
+Then, I took a look at the data frames. 
+
+```{r glimpse}
+glimpse(daily_activity) 
+glimpse(daily_calories)
+glimpse(daily_intensities)
+glimpse(daily_steps)
+glimpse(sleep_day)
+glimpse(weight_log)
+```
+
+Then, I previewed the column names. 
+
+```{r head}
+head(daily_activity)
+head(daily_calories)
+head(daily_intensities)
+head(daily_steps)
+head(sleep_day)
+head(weight_log)
+```
+
+I took another look at the column names for summary statistics and merging purposes.
+
+```{r column names}
+colnames(daily_activity)
+colnames(daily_calories)
+colnames(daily_intensities)
+colnames(daily_steps)
+colnames(sleep_day)
+colnames(weight_log)
+```
+
+Then, I did calculations for a summary. 
+
+```{r summary}
+daily_activity %>%
+  select(TotalSteps, TotalDistance, SedentaryMinutes, Calories) %>%
+  summary()
+
+daily_calories %>% 
+  select(Calories) %>% 
+  summary()
+
+daily_intensities %>% 
+  select(SedentaryMinutes, LightlyActiveMinutes, FairlyActiveMinutes, VeryActiveMinutes) %>% 
+  summary()
+
+daily_steps %>% 
+  select(StepTotal) %>% 
+  summary()
+
+sleep_day %>% 
+  select(TotalMinutesAsleep, TotalTimeInBed) %>% 
+  summary()
+
+weight_log %>% 
+  select(WeightPounds) %>% 
+  summary()
+```
+  
+I took a look at comprehensive data frames.
+
+```{r comprehensive look}
+skim_without_charts(daily_activity) %>% 
+  summary()
+skim_without_charts(daily_calories) %>% 
+  summary()
+skim_without_charts(daily_intensities) %>% 
+  summary()
+skim_without_charts(daily_steps) %>% 
+  summary()
+skim_without_charts(sleep_day) %>% 
+  summary()
+skim_without_charts(weight_log) %>% 
+  summary()
+```
+
+I wanted to see how many unique participants there were to get some conclusions. 
+
+```{r look for unique participants}
+n_distinct(daily_activity$Id)
+n_distinct(daily_calories$Id)
+n_distinct(daily_intensities$Id)
+n_distinct(daily_steps$Id)
+n_distinct(sleep_day$Id)
+n_distinct(weight_log$Id)
+```
+
+Then I wanted to see the number of observations.
+
+```{r see number of observations}
+nrow(daily_activity)
+nrow(daily_calories)
+nrow(daily_intensities)
+nrow(daily_steps)
+nrow(sleep_day)
+nrow(weight_log)
+```
+
+I separated the date and time columns in the sleep and weight logs to more easily merge the data sets.
+
+```{r separate columns}
+sleep_day_sep <- separate(sleep_day,SleepDay,into=c('date','time'), sep=' ')
+weight_log_sep <- separate(weight_log,Date,into=c('date','time'), sep=' ')
+```
+
+I renamed the "ActivityDay" column to "date" in the daily_activity table to make merging easier.
+
+```{r rename column}
+colnames(daily_activity)[2] <- "date"
+```
+
+I then merged the sleep_activity table with daily_activity and weight_activity with daily_activity.  
+
+```{r merge data sets}
+sleep_activity <- merge(daily_activity, sleep_day_sep, by=c("Id", "date"))
+weight_activity <- merge(daily_activity, weight_log_sep, by=c("Id", "date"))
+```
+
+I wanted to see if any of the participants were dropped as a result of the merge.
+
+```{r look for number of users}
+n_distinct(sleep_activity$Id)
+n_distinct(weight_activity$Id)
+```
+
+It ends up being the same number of participants as the sleep and weight logs, which makes sense.
+
+# Analysis with Visualizations
+
+First, I installed the visualization package and loaded the library.
+
+```{r install and load plotting package}
+install.packages("ggplot2")
+library("ggplot2")
+```
+
+I plotted the daily activities and calories burned to make sure that the data made sense.  I knew that the more activity, especially "Very Active" activity, should result in more calories burned. I also did one plot comparing the "Very Active Minutes" with "Total Steps".
+
+```{r ggplots}
+ggplot(data=daily_activity, aes(x=VeryActiveMinutes, y=Calories)) + geom_point()
+ggplot(data=daily_activity, aes(x=FairlyActiveMinutes, y=Calories)) + geom_point()
+ggplot(data=daily_activity, aes(x=LightlyActiveMinutes, y=Calories)) + geom_point()
+ggplot(data=daily_activity, aes(x=SedentaryMinutes, y=Calories)) + geom_point()
+ggplot(data=daily_activity, aes(x=VeryActiveMinutes, y=TotalSteps)) + geom_point() + geom_smooth()
+```
+
+As you can see, the results are what one might expect. 
+
+Since the activity minutes and sleep minutes had the most participants, I decided to see if there was some relationship between the two to help Bellabeat get an idea on how they might want to market their products. 
+
+```{r sleep plots}
+ggplot(data = sleep_activity, aes(x = TotalMinutesAsleep, y = VeryActiveMinutes)) +
+  geom_point() + geom_smooth() + xlim(0,800) +
+  ylim(0,1000) + labs(title = "Total Minutes Asleep vs VeryActiveMinutes")
+
+ggplot(data = sleep_activity) + (mapping=aes(x = TotalMinutesAsleep, y = LightlyActiveMinutes)) +
+  geom_point() + geom_smooth() + xlim(0,800) +
+  ylim(0,1000) + labs(title = "Total Minutes Asleep vs Lightly Active Minutes")
+
+ggplot(data = sleep_activity, aes(x = TotalMinutesAsleep, y = SedentaryMinutes)) +
+  geom_point() + geom_smooth() + labs(title = "Total Minutes Asleep vs Sedentary Minutes")
+```
+
+It seems in general that there is a negative correlation with sleep and activity.  However, the increase in activity didn't lead to a positive correlation.  Instead it appeared to level out where the more active someone was didn't necessarily mean the more time someone spent asleep.
+
+# Conclusion and Recommendations 
+
+The analysis indicates that the participants used their devices most commonly for tracking activity, steps, and sleep.  I would encourage Bellabeat to focus their marketing on activity because that appeared to be the primary use case.  In addition, it would help promote a positive image for women to focus on their health and fitness and general well-being as opposed to things like weight and diet.  To extend the analysis, I would like to be able to examine data sets that focus on the demographics of the users (gender, age groups, etc.) and the usage of Bellabeat's products themselves, rather than data from a competitor's product.
+
+
+
+
+
+
